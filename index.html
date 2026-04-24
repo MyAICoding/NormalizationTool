@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>坐标系宽高比例转换工具</title>
+    <style>
+        :root {
+            --primary: #673ab7;
+            --secondary: #009688;
+            --bg: #f5f5f7;
+            --card-bg: #ffffff;
+            --text: #333;
+            --border: #d1d1d6;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            margin-top: 0;
+            margin-bottom: 30px;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-group label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="number"], select {
+            padding: 8px 12px;
+            font-size: 15px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            width: 140px;
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        input[type="number"]:focus, select:focus {
+            border-color: var(--primary);
+        }
+
+        .divider {
+            height: 1px;
+            background-color: var(--border);
+            margin: 5px 0;
+        }
+
+        .info-panel {
+            background-color: #f3e5f5;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 5px solid var(--primary);
+            line-height: 1.6;
+        }
+
+        .formula {
+            font-family: 'Courier New', Courier, monospace;
+            background: #fff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: #c2185b;
+            font-weight: bold;
+        }
+
+        .visual-area {
+            display: flex;
+            gap: 40px;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .box-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .box-title {
+            font-weight: bold;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+
+        /* 坐标系样式 */
+        .coordinate-system {
+            position: relative;
+            width: 260px;
+            height: 260px;
+            border-left: 2px solid #333;
+            border-bottom: 2px solid #333;
+            background-image: 
+                linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-position: bottom left;
+        }
+
+        /* 坐标轴箭头 */
+        .coordinate-system::before {
+            content: 'Y';
+            position: absolute;
+            top: -25px;
+            left: -8px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .coordinate-system::after {
+            content: 'X';
+            position: absolute;
+            bottom: -25px;
+            right: -20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .y-arrow {
+            position: absolute; top: -10px; left: -6px;
+            border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 10px solid #333;
+        }
+        .x-arrow {
+            position: absolute; bottom: -6px; right: -10px;
+            border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 10px solid #333;
+        }
+        .origin {
+            position: absolute; bottom: -20px; left: -20px;
+            font-size: 12px; color: #666; font-weight: bold;
+        }
+
+        /* 矩形样式 */
+        .rect {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid;
+            transition: all 0.3s ease;
+        }
+
+        #origRect { 
+            border-color: #2196F3; 
+            background-color: rgba(33, 150, 243, 0.15); 
+        }
+        #targetRect { 
+            border-color: var(--secondary); 
+            background-color: rgba(0, 150, 136, 0.15); 
+        }
+
+        .dim-text {
+            position: absolute;
+            font-size: 13px;
+            font-weight: bold;
+            color: #333;
+            background: rgba(255,255,255,0.8);
+            padding: 2px 4px;
+            border-radius: 3px;
+            white-space: nowrap;
+        }
+
+        .dim-w { bottom: -25px; left: 50%; transform: translateX(-50%); }
+        .dim-h { left: -65px; top: 50%; transform: translateY(-50%); text-align: right; }
+
+        .center-text {
+            font-size: 13px;
+            text-align: center;
+            color: #111;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>新坐标系宽高转换工具</h1>
+    
+    <div class="controls">
+        <div class="input-row">
+            <div class="input-group">
+                <label>原宽度 (W₀):</label>
+                <input type="number" id="origW" value="1920" step="any">
+            </div>
+            <div class="input-group">
+                <label>原高度 (H₀):</label>
+                <input type="number" id="origH" value="1080" step="any">
+            </div>
+        </div>
+        
+        <div class="divider"></div>
+
+        <div class="input-row">
+            <div class="input-group">
+                <label>新坐标系基准:</label>
+                <select id="baseMode">
+                    <option value="width">给定新宽度 (W')</option>
+                    <option value="height">给定新高度 (H')</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>目标数值 :</label>
+                <input type="number" id="targetVal" value="1080" step="any">
+            </div>
+        </div>
+    </div>
+
+    <div class="info-panel" id="infoPanel">
+        <!-- 动态生成计算过程 -->
+    </div>
+
+    <div class="visual-area">
+        <!-- 原坐标系 -->
+        <div class="box-wrapper">
+            <div class="box-title">原始坐标系 (原尺寸)</div>
+            <div class="coordinate-system">
+                <div class="y-arrow"></div><div class="x-arrow"></div>
+                <div class="origin">(0,0)</div>
+                <div id="origRect" class="rect">
+                    <span class="dim-text dim-h" id="origHText"></span>
+                    <span class="dim-text dim-w" id="origWText"></span>
+                    <div class="center-text" id="origCenterText"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 新坐标系 -->
+        <div class="box-wrapper">
+            <div class="box-title" style="color: var(--secondary)">新坐标系 (目标尺寸)</div>
+            <div class="coordinate-system">
+                <div class="y-arrow"></div><div class="x-arrow"></div>
+                <div class="origin">(0,0)</div>
+                <div id="targetRect" class="rect">
+                    <span class="dim-text dim-h" id="targetHText"></span>
+                    <span class="dim-text dim-w" id="targetWText"></span>
+                    <div class="center-text" id="targetCenterText"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 获取DOM元素
+    const origWInput = document.getElementById('origW');
+    const origHInput = document.getElementById('origH');
+    const baseMode = document.getElementById('baseMode');
+    const targetValInput = document.getElementById('targetVal');
+    const infoPanel = document.getElementById('infoPanel');
+
+    const origRect = document.getElementById('origRect');
+    const targetRect = document.getElementById('targetRect');
+
+    // 格式化数字 (避免浮点数精度过长)
+    function formatNum(num) {
+        return Math.round(num * 100000) / 100000;
+    }
+
+    function calculate() {
+        const w0 = parseFloat(origWInput.value);
+        const h0 = parseFloat(origHInput.value);
+        const targetVal = parseFloat(targetValInput.value);
+        const mode = baseMode.value;
+
+        if (isNaN(w0) || isNaN(h0) || isNaN(targetVal) || w0 <= 0 || h0 <= 0 || targetVal <= 0) {
+            infoPanel.innerHTML = '<span style="color:red;font-weight:bold;">请输入大于0的有效数值。</span>';
+            origRect.style.display = 'none';
+            targetRect.style.display = 'none';
+            return;
+        }
+
+        origRect.style.display = 'flex';
+        targetRect.style.display = 'flex';
+
+        let w1, h1, scale;
+        const aspectRatio = w0 / h0;
+
+        // 核心转换逻辑
+        if (mode === 'width') {
+            w1 = targetVal;
+            scale = w1 / w0;
+            h1 = h0 * scale;
+            
+            infoPanel.innerHTML = `
+                <div><strong>1. 原宽高比 (W₀ / H₀):</strong> <span class="formula">${formatNum(aspectRatio)}</span></div>
+                <div><strong>2. 转换系数 (Scale):</strong> 新宽度 W' ÷ 原宽度 W₀ = ${w1} ÷ ${w0} = <span class="formula">${formatNum(scale)}</span></div>
+                <div><strong>3. 目标高度 (H'):</strong> 原高度 H₀ × 系数 = ${h0} × ${formatNum(scale)} = <span class="formula">${formatNum(h1)}</span></div>
+                <div style="margin-top:10px; color:#00796b;"><strong>最终结果：</strong> 新坐标系下的尺寸为 <strong>W' = ${w1}</strong>，<strong>H' = ${formatNum(h1)}</strong></div>
+            `;
+        } else {
+            h1 = targetVal;
+            scale = h1 / h0;
+            w1 = w0 * scale;
+
+            infoPanel.innerHTML = `
+                <div><strong>1. 原宽高比 (W₀ / H₀):</strong> <span class="formula">${formatNum(aspectRatio)}</span></div>
+                <div><strong>2. 转换系数 (Scale):</strong> 新高度 H' ÷ 原高度 H₀ = ${h1} ÷ ${h0} = <span class="formula">${formatNum(scale)}</span></div>
+                <div><strong>3. 目标宽度 (W'):</strong> 原宽度 W₀ × 系数 = ${w0} × ${formatNum(scale)} = <span class="formula">${formatNum(w1)}</span></div>
+                <div style="margin-top:10px; color:#00796b;"><strong>最终结果：</strong> 新坐标系下的尺寸为 <strong>W' = ${formatNum(w1)}</strong>，<strong>H' = ${h1}</strong></div>
+            `;
+        }
+
+        // --- 以下为绘图逻辑 (缩放到220px的画布内展示) ---
+        const MAX_DRAW_SIZE = 200; // 留出边缘空间给文字
+
+        // 计算原图在网页上的渲染像素
+        const origMax = Math.max(w0, h0);
+        const origDrawW = (w0 / origMax) * MAX_DRAW_SIZE;
+        const origDrawH = (h0 / origMax) * MAX_DRAW_SIZE;
+
+        // 计算目标图在网页上的渲染像素
+        const targetMax = Math.max(w1, h1);
+        const targetDrawW = (w1 / targetMax) * MAX_DRAW_SIZE;
+        const targetDrawH = (h1 / targetMax) * MAX_DRAW_SIZE;
+
+        // 渲染原坐标系矩形
+        origRect.style.width = `${origDrawW}px`;
+        origRect.style.height = `${origDrawH}px`;
+        document.getElementById('origWText').innerText = formatNum(w0);
+        document.getElementById('origHText').innerText = formatNum(h0);
+        document.getElementById('origCenterText').innerHTML = `W₀: ${formatNum(w0)}<br>H₀: ${formatNum(h0)}`;
+
+        // 渲染新坐标系矩形
+        targetRect.style.width = `${targetDrawW}px`;
+        targetRect.style.height = `${targetDrawH}px`;
+        document.getElementById('targetWText').innerText = formatNum(w1);
+        document.getElementById('targetHText').innerText = formatNum(h1);
+        document.getElementById('targetCenterText').innerHTML = `W': ${formatNum(w1)}<br>H': ${formatNum(h1)}`;
+    }
+
+    // 绑定事件监听器
+    origWInput.addEventListener('input', calculate);
+    origHInput.addEventListener('input', calculate);
+    baseMode.addEventListener('change', calculate);
+    targetValInput.addEventListener('input', calculate);
+
+    // 页面加载完毕后默认计算一次
+    calculate();
+</script>
+
+</body>
+</html>
